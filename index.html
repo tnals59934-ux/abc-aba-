@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>불규칙 동사 테스트 (ABA형 & ABC형)</title>
+<style>
+  body {
+    font-family: 'Pretendard', sans-serif, -apple-system;
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f8fafc;
+    color: #1e293b;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 25px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 15px;
+  }
+  button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .btn-shuffle { background: #3b82f6; color: white; }
+  .btn-shuffle:hover { background: #2563eb; }
+  .btn-check { background: #10b981; color: white; }
+  .btn-check:hover { background: #059669; }
+  .btn-print { background: #64748b; color: white; }
+  .btn-print:hover { background: #475569; }
+  .score-box {
+    margin-top: 12px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #0f172a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    text-align: center;
+    font-size: 14px;
+  }
+  th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+  }
+  .base-word {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 15px;
+  }
+  input[type="text"] {
+    width: 88%;
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+  }
+  input[type="text"]:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+  }
+  .correct {
+    background-color: #dcfce7 !important;
+    border-color: #22c55e !important;
+  }
+  .incorrect {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+  }
+  .ans-hint {
+    display: none;
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 3px;
+    font-weight: 500;
+  }
+
+  /* 인쇄 전용 서식 */
+  @media print {
+    body {
+      background: white;
+      padding: 0;
+      margin: 0;
+    }
+    .header {
+      box-shadow: none;
+      padding: 10px 0;
+      margin-bottom: 15px;
+    }
+    .controls, .score-box {
+      display: none !important;
+    }
+    table {
+      box-shadow: none;
+      border: 1px solid #000;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 6px;
+    }
+    th {
+      background-color: #eee !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    input[type="text"] {
+      border: none !important;
+      border-bottom: 1px solid #999 !important;
+      border-radius: 0;
+      background: transparent;
+      color: transparent; /* 입력창 비우고 밑줄만 표시 */
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>불규칙 동사 테스트 (ABA형 & ABC형)</h2>
+  <div class="controls">
+    <button class="btn-shuffle" onclick="renderTable()">문제 무작위 섞기</button>
+    <button class="btn-check" onclick="checkAnswers()">채점하기</button>
+    <button class="btn-print" onclick="window.print()">시험지 인쇄</button>
+  </div>
+  <div id="scoreBox" class="score-box"></div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 7%;">번호</th>
+      <th style="width: 25%;">의미</th>
+      <th style="width: 22%;">원형</th>
+      <th style="width: 23%;">과거형</th>
+      <th style="width: 23%;">과거분사형</th>
+    </tr>
+  </thead>
+  <tbody id="quizTableBody"></tbody>
+</table>
+
+<script>
+const verbData = [
+  // ABA형 (3개)
+  { type: "ABA", base: "come", past: "came", pp: "come", mean: "오다" },
+  { type: "ABA", base: "become", past: "became", pp: "become", mean: "되다" },
+  { type: "ABA", base: "run", past: "ran", pp: "run", mean: "달리다" },
+  
+  // ABC형 (34개)
+  { type: "ABC", base: "be", past: "was,were,was/were,was / were,am/is was", pp: "been", mean: "이다, 있다", displayPast: "was / were" },
+  { type: "ABC", base: "bear", past: "bore", pp: "born", mean: "낳다" },
+  { type: "ABC", base: "begin", past: "began", pp: "begun", mean: "시작하다" },
+  { type: "ABC", base: "blow", past: "blew", pp: "blown", mean: "불다" },
+  { type: "ABC", base: "break", past: "broke", pp: "broken", mean: "부수다" },
+  { type: "ABC", base: "choose", past: "chose", pp: "chosen", mean: "선택하다" },
+  { type: "ABC", base: "do", past: "did", pp: "done", mean: "하다" },
+  { type: "ABC", base: "draw", past: "drew", pp: "drawn", mean: "그리다" },
+  { type: "ABC", base: "drink", past: "drank", pp: "drunk", mean: "마시다" },
+  { type: "ABC", base: "drive", past: "drove", pp: "driven", mean: "운전하다" },
+  { type: "ABC", base: "eat", past: "ate", pp: "eaten", mean: "먹다" },
+  { type: "ABC", base: "fall", past: "fell", pp: "fallen", mean: "떨어지다" },
+  { type: "ABC", base: "fly", past: "flew", pp: "flown", mean: "날다" },
+  { type: "ABC", base: "forget", past: "forgot", pp: "forgotten", mean: "잊다" },
+  { type: "ABC", base: "give", past: "gave", pp: "given", mean: "주다" },
+  { type: "ABC", base: "go", past: "went", pp: "gone", mean: "가다" },
+  { type: "ABC", base: "grow", past: "grew", pp: "grown", mean: "자라다" },
+  { type: "ABC", base: "hide", past: "hid", pp: "hidden", mean: "숨다" },
+  { type: "ABC", base: "know", past: "knew", pp: "known", mean: "알다" },
+  { type: "ABC", base: "lie", past: "lay", pp: "lain", mean: "눕다" },
+  { type: "ABC", base: "ride", past: "rode", pp: "ridden", mean: "타다" },
+  { type: "ABC", base: "ring", past: "rang", pp: "rung", mean: "울리다" },
+  { type: "ABC", base: "mistake", past: "mistook", pp: "mistaken", mean: "오해하다" },
+  { type: "ABC", base: "rise", past: "rose", pp: "risen", mean: "오르다" },
+  { type: "ABC", base: "see", past: "saw", pp: "seen", mean: "보다" },
+  { type: "ABC", base: "shake", past: "shook", pp: "shaken", mean: "흔들다" },
+  { type: "ABC", base: "show", past: "showed", pp: "shown", mean: "보여주다" },
+  { type: "ABC", base: "sing", past: "sang", pp: "sung", mean: "노래하다" },
+  { type: "ABC", base: "speak", past: "spoke", pp: "spoken", mean: "말하다" },
+  { type: "ABC", base: "steal", past: "stole", pp: "stolen", mean: "훔치다" },
+  { type: "ABC", base: "swim", past: "swam", pp: "swum", mean: "수영하다" },
+  { type: "ABC", base: "take", past: "took", pp: "taken", mean: "(버스를)타다" },
+  { type: "ABC", base: "wear", past: "wore", pp: "worn", mean: "입다" },
+  { type: "ABC", base: "write", past: "wrote", pp: "written", mean: "쓰다" }
+];
+
+function shuffle(array) {
+  let arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function renderTable() {
+  const currentList = shuffle(verbData);
+  const tbody = document.getElementById("quizTableBody");
+  tbody.innerHTML = "";
+  document.getElementById("scoreBox").innerText = "";
+
+  currentList.forEach((item, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${item.mean}</td>
+      <td class="base-word">${item.base}</td>
+      <td>
+        <input type="text" data-ans="${item.past}">
+        <div class="ans-hint">${item.displayPast || item.past}</div>
+      </td>
+      <td>
+        <input type="text" data-ans="${item.pp}">
+        <div class="ans-hint">${item.pp}</div>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function checkAnswers() {
+  const inputs = document.querySelectorAll("#quizTableBody input");
+  let correctCount = 0;
+  const totalCount = inputs.length;
+
+  inputs.forEach(input => {
+    const expected = input.getAttribute("data-ans").toLowerCase().split(",");
+    const actual = input.value.trim().toLowerCase();
+    const hint = input.nextElementSibling;
+
+    if (actual !== "" && expected.includes(actual)) {
+      input.className = "correct";
+      hint.style.display = "none";
+      correctCount++;
+    } else {
+      input.className = "incorrect";
+      hint.style.display = "block";
+    }
+  });
+
+  const percentage = Math.round((correctCount / totalCount) * 100);
+  document.getElementById("scoreBox").innerText = `점수: ${correctCount} / ${totalCount} (${percentage}점)`;
+}
+
+window.onload = renderTable;
+</script>
+</body>
+</html>
